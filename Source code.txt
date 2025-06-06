@@ -1,0 +1,60 @@
+# AI Resume Screening & Matching Agent
+
+import os
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import string
+import re
+
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Function to clean and preprocess text
+def preprocess(text):
+text = text.lower()
+text = re.sub(r'\d+', '', text) # remove numbers
+text = text.translate(str.maketrans('', '', string.punctuation)) # remove punctuation
+tokens = word_tokenize(text)
+tokens = [word for word in tokens if word not in stopwords.words('english')]
+return ' '.join(tokens)
+
+# Sample Job Description
+job_description = """
+We are looking for a Data Analyst with experience in Python, SQL, and data visualization tools like Tableau or Power BI.
+The candidate should understand statistical methods and be able to handle large datasets.
+"""
+
+# Sample resumes (you can replace these with reading files)
+resumes = {
+"resume_1": "I have 2 years of experience working with Python and SQL. I've created dashboards using Power BI and worked on customer analytics.",
+"resume_2": "Experienced software engineer with Java and Spring Boot. No experience in data visualization.",
+"resume_3": "Skilled in Tableau, Excel, and Python. Have done data cleaning, processing, and statistical analysis on sales data."
+}
+
+# Preprocess job description and resumes
+jd_clean = preprocess(job_description)
+resume_texts = [preprocess(text) for text in resumes.values()]
+
+# Combine all texts
+documents = [jd_clean] + resume_texts
+
+# Vectorize using TF-IDF
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(documents)
+
+# Calculate cosine similarity
+cosine_similarities = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+
+# Rank resumes by similarity
+results = pd.DataFrame({
+"Resume": list(resumes.keys()),
+"Match Score (%)": [round(score * 100, 2) for score in cosine_similarities]
+})
+
+results = results.sort_values(by="Match Score (%)", ascending=False).reset_index(drop=True)
+print("\nResume Match Results:")
+print(results)
